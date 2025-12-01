@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# SPDX-FileCopyrightText: © 2025 franklin <smoooth.y62wj@passmail.net>
+# SPDX-FileCopyrightText: © 2025 franklin 
 #
 # SPDX-License-Identifier: MIT
 
@@ -8,38 +8,64 @@
 #
 # v 0.1 11/30/25 franklin - initial version
 
-BACKUP_DIR="/tmp"
+
 DEB_PKG=(git gnupg)
 LRED='\033[1;31m'
+NC='\033[0m' # No Color
 MC_HOME="/home/betty"
 MC_LOG="/var/log/minecraft"
 ME_SU=false
+BACKUP_DIR="/${MC_HOME}/backups"
 
+# Source common functions
 if [ -f "${MC_HOME}/bin/common.sh" ]; then
-  source "${MC_HOME}/bin/common.sh"
+    source "${MC_HOME}/bin/common.sh"
 else
-  echo -e "${LRED}can not find common.sh.${NC}"
-  exit 1
+    echo -e "${LRED}Cannot find common.sh.${NC}"
+    exit 1
 fi
-log_info "successfully sourced common.sh" && echo -e "\n"
+log_info "Successfully sourced common.sh"
 
-if sudo -v &> /dev/null ;then
-  log_info "sudo is allowed"
-  ME_SU=true
+# Check for sudo capabilities
+if sudo -v &> /dev/null; then
+    log_info "Sudo is allowed"
+    ME_SU=true
 else
-  log_warn "sudo is not allowed"
+    log_warn "Sudo is not allowed"
 fi
 
-var=$(date +"%FORMAT_STRING")
-now=$(date +"%m_%d_%Y")
-printf "%s\n" $now
+# Backup naming
 today=$(date +"%Y-%m-%d")
-printf "Backup from to ${MC_HOME} ${BACKUP_DIR}/backups/$(date +%A)/betty-mc-${today}.tar.xz"
+BD="${BACKUP_DIR}/$(date +%A)"
+BF="betty-mc-${today}.tar"
 
-if [ ! -d "${BACKUP_DIR}/backups/$(date +%A)/" ] ; then 
+log_header "Starting backup from ${MC_HOME} to ${BD}"
 
-  mkdir "${MC_HOME}/backups"
+# Create backup directory if it doesn't exist
+if [ ! -d "${BD}" ]; then 
+    log_info "Creating backup directory: ${BD}"
+    mkdir -p "${BD}"
+else
+    log_info "Backup directory already exists: ${BD}"
 fi
 
+# Generate backup file
+log_info "Generating backup file: ${BD}/${BF}"
+MYTMPDIR="$(mktemp -d)"
+pushd "${MYTMPDIR}" || { log_error "Failed to change to temp dir"; exit 1; }
+log_info "Using temporary workdir: ${PWD}"
 
-cp -r "${MC_HOME}/world
+cp -r "${MC_HOME}/world" "${MC_HOME}/world_nether" "${MC_HOME}/world_the_end" "${MYTMPDIR}/"
+tar -cf "${MYTMPDIR}/${BF}" -C "${MYTMPDIR}" /tmp # Create the tar archive in the temporary directory
+
+log_info "Compressing backup..."
+xz -z "/tmp/${BF}"
+
+log_info "Saving the compressed file to the backup directory"
+mv "/tmp/${BF}.xz" "${BD}"
+
+log_info "Backup completed successfully."
+popd
+
+log_info "Cleaing up..."
+rm -rf "/tmp/tmp.*"
