@@ -69,3 +69,6 @@ popd
 
 log_info "Cleaing up..."
 rm -rf "/tmp/tmp.*"
+
+# can i message the console
+# screen -S minecraft -p 0 -X stuff "`printf "say This is a test.\r"`";

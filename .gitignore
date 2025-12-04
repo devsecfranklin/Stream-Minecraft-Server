@@ -10,4 +10,7 @@
 .profile
 .selected_editor
 .viminfo
-
+cache/
+crash-reports/
+libraries/
+logs/
